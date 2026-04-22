@@ -1,0 +1,28 @@
+# Python environments
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Mac OS
+.DS_Store
+
+# Datasets
+All.csv
+*.npz
+
+# Large Model Artifacts
+*.h5
+*.keras
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Laravel/PHP (if you add a full project here later)
+vendor/
+node_modules/
+.env
+public/build/
+public/hot

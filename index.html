@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Malicious URL Scanner</title>
+    <!-- Tailwind CSS (via CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e3a8a',
+                        secondary: '#3b82f6',
+                        dark: '#0f172a',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
+
+    <!-- Top Navigation Bar -->
+    <nav class="bg-dark text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-shield-halved text-secondary text-2xl"></i>
+                    <span class="font-bold text-xl tracking-tight">CyberShield AI Engine</span>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-300">Deep Learning URL Analysis</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="max-w-4xl mx-auto px-4 py-12">
+        
+        <!-- Header Section -->
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-gray-900 mb-4">Malicious URL Scanner</h1>
+            <p class="text-lg text-gray-600">
+                Powered by a Deep Neural Network trained on 79 lexical features. 
+                Enter a URL to detect Phishing, Malware, Spam, Defacement, or Benign sites.
+            </p>
+        </div>
+
+        <!-- Scanner Form Card -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-100">
+            
+            <!-- Error Alert -->
+            <div id="error-alert" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-md">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fa-solid fa-circle-exclamation text-red-500"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p id="error-message" class="text-sm text-red-700 font-medium"></p>
+                    </div>
+                </div>
+            </div>
+
+            <form id="scan-form">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-grow">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-globe text-gray-400"></i>
+                            </div>
+                            <input 
+                                type="url" 
+                                id="url" 
+                                required
+                                class="pl-10 block w-full rounded-xl border-gray-300 shadow-sm focus:ring-secondary focus:border-secondary sm:text-lg p-4 border bg-gray-50 focus:bg-white transition-colors" 
+                                placeholder="https://example.com/suspicious-link"
+                            >
+                        </div>
+                    </div>
+                    <button type="submit" id="submit-btn" class="inline-flex justify-center items-center px-8 py-4 border border-transparent text-lg font-medium rounded-xl shadow-sm text-white bg-secondary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary transition-all">
+                        <i id="btn-icon" class="fa-solid fa-radar mr-2"></i> <span id="btn-text">Scan Target</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Section (Dynamic) -->
+        <div id="results-container" class="hidden bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 animate-fade-in-up">
+            
+            <!-- Result Banner -->
+            <div id="result-banner" class="px-6 py-8 text-white text-center">
+                <i id="result-icon" class="fa-solid text-5xl mb-4 opacity-90 mx-auto block"></i>
+                <h2 id="result-title" class="text-3xl font-bold mb-2"></h2>
+                <p id="result-subtitle" class="text-lg opacity-90">
+                    AI Confidence Level: <span id="result-confidence" class="font-bold"></span>
+                </p>
+            </div>
+
+            <!-- Detailed Breakdown -->
+            <div class="p-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-6 border-b pb-2">Analysis Breakdown</h3>
+                
+                <div id="probability-bars" class="space-y-5">
+                    <!-- Bars injected by JS -->
+                </div>
+                
+                <div class="mt-8 pt-6 border-t text-sm text-gray-500 flex justify-between items-center">
+                    <div>
+                        <i class="fa-solid fa-microchip mr-1"></i> Processed via FastAPI Deep Neural Network
+                    </div>
+                    <div>
+                        <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-mono text-xs">Model: ISCX-URL2016</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <style>
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+    </style>
+
+    <script>
+        document.getElementById('scan-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const urlInput = document.getElementById('url').value;
+            const errorAlert = document.getElementById('error-alert');
+            const resultsContainer = document.getElementById('results-container');
+            const btnIcon = document.getElementById('btn-icon');
+            const btnText = document.getElementById('btn-text');
+            const submitBtn = document.getElementById('submit-btn');
+
+            // Reset UI
+            errorAlert.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+            
+            // Loading State
+            btnIcon.className = 'fa-solid fa-spinner fa-spin mr-2';
+            btnText.innerText = 'Analyzing...';
+            submitBtn.disabled = true;
+
+            try {
+                // Call FastAPI
+                const response = await fetch('http://127.0.0.1:8000/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: urlInput })
+                });
+
+                if (!response.ok) throw new Error("AI Server Error: " + response.statusText);
+                
+                const data = await response.json();
+                
+                // Parse AI response
+                const isSafe = data.risk_level === 'Safe';
+                const prediction = data.prediction;
+                
+                let colorClass = isSafe ? 'green' : 'red';
+                let iconClass = isSafe ? 'fa-shield-check' : 'fa-triangle-exclamation';
+                
+                if (!isSafe) {
+                    if (prediction === 'Phishing') colorClass = 'orange';
+                    if (prediction === 'Malware') colorClass = 'red';
+                    if (prediction === 'Spam') colorClass = 'yellow';
+                    if (prediction === 'Defacement') colorClass = 'purple';
+                }
+
+                // Tailwind dynamic classes don't work well via JS if they aren't pre-purged. 
+                // We'll use inline styles or specific safe classes for the banner.
+                const colorMap = {
+                    'green': '#16a34a',
+                    'red': '#dc2626',
+                    'orange': '#ea580c',
+                    'yellow': '#ca8a04',
+                    'purple': '#9333ea'
+                };
+                
+                const bannerBgColor = colorMap[colorClass];
+
+                // Update Banner
+                document.getElementById('result-banner').style.backgroundColor = bannerBgColor;
+                document.getElementById('result-icon').className = `fa-solid ${iconClass} text-5xl mb-4 opacity-90 mx-auto block`;
+                document.getElementById('result-title').innerText = isSafe ? 'Safe URL Detected' : 'Threat Detected: ' + prediction;
+                document.getElementById('result-confidence').innerText = data.confidence;
+
+                // Update Bars
+                const barsContainer = document.getElementById('probability-bars');
+                barsContainer.innerHTML = ''; // clear old
+
+                for (const [cls, probStr] of Object.entries(data.all_probabilities)) {
+                    const probFloat = parseFloat(probStr.replace('%', ''));
+                    const isWinningClass = (cls === prediction);
+                    const barColor = isWinningClass ? bannerBgColor : '#9ca3af';
+
+                    barsContainer.innerHTML += `
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-700">${cls}</span>
+                                <span class="text-sm font-semibold text-gray-900">${probStr}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="h-2.5 rounded-full" style="width: ${probFloat}%; background-color: ${barColor}"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                resultsContainer.classList.remove('hidden');
+
+            } catch (err) {
+                document.getElementById('error-message').innerText = "Unable to connect to the AI engine. Is the Python FastAPI server running on port 8000?";
+                errorAlert.classList.remove('hidden');
+            } finally {
+                // Restore Button State
+                btnIcon.className = 'fa-solid fa-radar mr-2';
+                btnText.innerText = 'Scan Target';
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
