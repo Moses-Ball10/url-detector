@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Malicious URL Detector</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #0f1435;
+            --glass-bg: rgba(15, 23, 60, 0.6);
+            --glass-border: rgba(100, 140, 255, 0.15);
+            --glass-shadow: 0 8px 32px rgba(60, 100, 255, 0.25);
+            --text-primary: #e8ecf4;
+            --text-secondary: #8892b0;
+            --accent-blue: #4f8cff;
+            --color-benign: #22c55e;
+            --color-phishing: #ef4444;
+            --color-spam: #eab308;
+            --color-malware: #f97316;
+            --color-defacement: #9ca3af;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Animated background orbs */
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.3;
+            z-index: 0;
+            animation: float 8s ease-in-out infinite;
+        }
+        body::before {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, #1e3a8a, transparent);
+            top: -100px; left: -100px;
+        }
+        body::after {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, #3730a3, transparent);
+            bottom: -80px; right: -80px;
+            animation-delay: -4s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(30px, -20px); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 960px;
+            padding: 24px;
+        }
+
+        /* Glass Card */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: var(--glass-shadow);
+            padding: 40px;
+        }
+
+        .header { text-align: center; margin-bottom: 36px; }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #e8ecf4, var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 6px;
+        }
+        #poweredBy {
+            color: var(--accent-blue);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        /* Model Selector */
+        .model-selector {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 28px;
+        }
+        .model-option {
+            position: relative;
+            cursor: pointer;
+        }
+        .model-option input { display: none; }
+        .model-option .label-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 14px 28px;
+            border-radius: 14px;
+            border: 1px solid rgba(100, 140, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+            transition: all 0.3s ease;
+        }
+        .model-option .label-box:hover {
+            border-color: rgba(100, 140, 255, 0.3);
+            background: rgba(100, 140, 255, 0.06);
+        }
+        .model-option input:checked + .label-box {
+            border-color: var(--accent-blue);
+            background: rgba(79, 140, 255, 0.1);
+            box-shadow: 0 0 20px rgba(79, 140, 255, 0.15);
+        }
+        .model-option .model-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+        .model-option .model-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Input Bar */
+        .input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 14px 20px;
+            border-radius: 14px;
+            border: 1px solid rgba(100, 140, 255, 0.15);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .input-group input::placeholder { color: var(--text-secondary); opacity: 0.6; }
+        .input-group input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.15);
+        }
+        .input-group button {
+            padding: 14px 32px;
+            border-radius: 14px;
+            border: none;
+            background: linear-gradient(135deg, #3b6fe0, var(--accent-blue));
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .input-group button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(79, 140, 255, 0.4);
+        }
+        .input-group button:active { transform: translateY(0); }
+
+        /* Result Area */
+        .result-area {
+            margin-top: 36px;
+            display: none; /* hidden by default */
+        }
+        .result-area.visible { display: block; animation: fadeInUp 0.5s ease; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-top {
+            display: flex;
+            align-items: center;
+            gap: 36px;
+        }
+
+        /* Circular Progress */
+        .circle-container {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            flex-shrink: 0;
+        }
+        .circle-container svg {
+            transform: rotate(-90deg);
+            width: 160px;
+            height: 160px;
+        }
+        .circle-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.06);
+            stroke-width: 10;
+        }
+        .circle-progress {
+            fill: none;
+            stroke-width: 10;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s ease, stroke 0.5s ease;
+        }
+        .circle-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .circle-text .percent {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .circle-text .class-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+
+        /* Info panel next to circle */
+        .result-info {
+            flex: 1;
+        }
+        .result-info .analyzed-url-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .result-info .analyzed-url {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-blue);
+            word-break: break-all;
+            padding: 10px 14px;
+            background: rgba(79, 140, 255, 0.06);
+            border-radius: 10px;
+            border: 1px solid rgba(79, 140, 255, 0.1);
+            margin-bottom: 16px;
+        }
+        .result-info .verdict {
+            font-size: 1.4rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .result-info .verdict-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Probability Bars */
+        .prob-breakdown {
+            margin-top: 28px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(100, 140, 255, 0.1);
+        }
+        .prob-breakdown h3 {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 16px;
+        }
+        .prob-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .prob-label {
+            width: 100px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .prob-bar-track {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .prob-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease;
+            width: 0%;
+        }
+        .prob-value {
+            width: 50px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        /* Loading state */
+        .loading .input-group button {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .glass-card { padding: 24px; }
+            .result-top { flex-direction: column; text-align: center; }
+            .input-group { flex-direction: column; }
+            .model-selector { flex-direction: column; align-items: center; }
+            .prob-label { width: 80px; font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="glass-card">
+            <!-- Header -->
+            <div class="header">
+                <h1>Malicious URL Detector</h1>
+                <p id="poweredBy">Powered by XGBoost Classifier</p>
+            </div>
+
+            <!-- Model Selector -->
+            <div class="model-selector">
+                <label class="model-option">
+                    <input type="radio" name="model_type" value="xgb" checked>
+                    <div class="label-box">
+                        <span class="model-name">XGBoost</span>
+                        <span class="model-desc">Gradient Boosting</span>
+                    </div>
+                </label>
+                <label class="model-option">
+                    <input type="radio" name="model_type" value="rf">
+                    <div class="label-box">
+                        <span class="model-name">Random Forest</span>
+                        <span class="model-desc">Ensemble Trees</span>
+                    </div>
+                </label>
+            </div>
+
+            <!-- URL Input -->
+            <form id="urlForm">
+                <div class="input-group">
+                    <input type="text" id="urlInput" name="url" placeholder="Paste a URL to analyze..." required autocomplete="off">
+                    <button type="submit" id="submitBtn">Analyze</button>
+                </div>
+            </form>
+
+            <!-- Result Area -->
+            <div class="result-area" id="resultArea">
+                <div class="result-top">
+                    <!-- Circle -->
+                    <div class="circle-container">
+                        <svg viewBox="0 0 160 160">
+                            <circle class="circle-bg" cx="80" cy="80" r="68"/>
+                            <circle class="circle-progress" id="circleProgress" cx="80" cy="80" r="68"/>
+                        </svg>
+                        <div class="circle-text">
+                            <div class="percent" id="circlePercent">0%</div>
+                            <div class="class-label" id="circleLabel">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Info -->
+                    <div class="result-info">
+                        <div class="analyzed-url-label">Analyzed URL</div>
+                        <div class="analyzed-url" id="analyzedUrl">--</div>
+                        <div class="verdict" id="verdict">--</div>
+                        <div class="verdict-desc" id="verdictDesc">--</div>
+                    </div>
+                </div>
+
+                <!-- Breakdown -->
+                <div class="prob-breakdown">
+                    <h3>Class Probability Breakdown</h3>
+                    <div id="probBars"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CLASS_COLORS = {
+            'benign':     '#22c55e',
+            'phishing':   '#ef4444',
+            'spam':       '#eab308',
+            'malware':    '#f97316',
+            'Defacement': '#9ca3af'
+        };
+
+        const CLASS_DESCRIPTIONS = {
+            'benign':     'This URL appears safe. No malicious indicators detected.',
+            'phishing':   'Warning: This URL shows characteristics of a phishing attempt.',
+            'spam':       'This URL has patterns commonly associated with spam campaigns.',
+            'malware':    'Danger: This URL may be distributing malicious software.',
+            'Defacement': 'This URL shows signs of web defacement or injection attacks.'
+        };
+
+        // Get color by class name (case-insensitive lookup)
+        function getColor(className) {
+            const lower = className.toLowerCase();
+            for (const [key, val] of Object.entries(CLASS_COLORS)) {
+                if (key.toLowerCase() === lower) return val;
+            }
+            return '#8892b0';
+        }
+
+        // Update "Powered by" text
+        document.querySelectorAll('input[name="model_type"]').forEach(btn => {
+            btn.addEventListener('change', (e) => {
+                const pb = document.getElementById('poweredBy');
+                pb.innerText = e.target.value === 'xgb'
+                    ? 'Powered by XGBoost Classifier'
+                    : 'Powered by Random Forest';
+            });
+        });
+
+        // Circle animation
+        function animateCircle(percent, color) {
+            const circle = document.getElementById('circleProgress');
+            const circumference = 2 * Math.PI * 68;
+            circle.style.strokeDasharray = circumference;
+            circle.style.strokeDashoffset = circumference;
+            circle.style.stroke = color;
+
+            // Trigger reflow then animate
+            requestAnimationFrame(() => {
+                const offset = circumference - (percent / 100) * circumference;
+                circle.style.strokeDashoffset = offset;
+            });
+        }
+
+        // Build probability bars
+        function renderBars(probabilities, topClass) {
+            const container = document.getElementById('probBars');
+            container.innerHTML = '';
+
+            // Sort by probability descending
+            const sorted = Object.entries(probabilities).sort((a, b) => b[1] - a[1]);
+
+            sorted.forEach(([cls, prob]) => {
+                const color = getColor(cls);
+                const isTop = cls.toLowerCase() === topClass.toLowerCase();
+
+                const row = document.createElement('div');
+                row.className = 'prob-row';
+                row.innerHTML = `
+                    <div class="prob-label" style="color: ${color}">${cls}</div>
+                    <div class="prob-bar-track">
+                        <div class="prob-bar-fill" style="background: ${color}" data-width="${prob}"></div>
+                    </div>
+                    <div class="prob-value" style="color: ${isTop ? color : ''}">${prob.toFixed(1)}%</div>
+                `;
+                container.appendChild(row);
+            });
+
+            // Animate bars after append
+            requestAnimationFrame(() => {
+                container.querySelectorAll('.prob-bar-fill').forEach(bar => {
+                    bar.style.width = bar.dataset.width + '%';
+                });
+            });
+        }
+
+        // Form submit
+        document.getElementById('urlForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const url = document.getElementById('urlInput').value;
+            const modelType = document.querySelector('input[name="model_type"]:checked').value;
+            const btn = document.getElementById('submitBtn');
+            const resultArea = document.getElementById('resultArea');
+
+            btn.textContent = 'Analyzing...';
+            btn.style.opacity = '0.6';
+            btn.style.pointerEvents = 'none';
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `url=${encodeURIComponent(url)}&model_type=${encodeURIComponent(modelType)}`
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                const color = getColor(data.prediction);
+                const desc = CLASS_DESCRIPTIONS[data.prediction] || CLASS_DESCRIPTIONS[data.prediction.toLowerCase()] || '';
+
+                // Update circle
+                document.getElementById('circlePercent').textContent = data.confidence.toFixed(1) + '%';
+                document.getElementById('circlePercent').style.color = color;
+                document.getElementById('circleLabel').textContent = data.prediction;
+                document.getElementById('circleLabel').style.color = color;
+                animateCircle(data.confidence, color);
+
+                // Update info
+                document.getElementById('analyzedUrl').textContent = data.url;
+                document.getElementById('verdict').textContent = data.prediction;
+                document.getElementById('verdict').style.color = color;
+                document.getElementById('verdictDesc').textContent = desc;
+
+                // Render bars
+                renderBars(data.probabilities, data.prediction);
+
+                // Show result
+                resultArea.classList.add('visible');
+
+            } catch (err) {
+                alert('Network error: ' + err.message);
+            } finally {
+                btn.textContent = 'Analyze';
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            }
+        };
+    </script>
+</body>
+</html>

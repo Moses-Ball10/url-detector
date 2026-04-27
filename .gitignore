@@ -1,28 +1,8 @@
-# Python environments
 venv/
-env/
 __pycache__/
-*.py[cod]
-*$py.class
-
-# Mac OS
+*.pyc
 .DS_Store
-
-# Datasets
-All.csv
-*.npz
-
-# Large Model Artifacts
-*.h5
-*.keras
-
-# IDE / Editor
-.vscode/
-.idea/
-
-# Laravel/PHP (if you add a full project here later)
-vendor/
-node_modules/
+Processed_URL_Dataset.csv
+*.log
 .env
-public/build/
-public/hot
+All.csv
