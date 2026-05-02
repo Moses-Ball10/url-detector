@@ -43,7 +43,9 @@ pip install -r requirements.txt
 Start the Flask server to launch the web interface.
 
 ```bash
-python app.py
+python app.py / python3 app.py
+#if it didnt work try this: 
+./venv/bin/python app.py
 ```
 Visit `http://127.0.0.1:5000` in your browser.
 
