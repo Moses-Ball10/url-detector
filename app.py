@@ -6,6 +6,20 @@ import traceback
 import json
 import xgboost as xgb
 from extractor import URLExtractor 
+from urllib.parse import urlparse
+
+# Static list of known safe domains
+SAFE_DOMAINS = {
+    'google.com', 'www.google.com',
+    'youtube.com', 'www.youtube.com',
+    'facebook.com', 'www.facebook.com',
+    'github.com', 'www.github.com',
+    'wikipedia.org', 'en.wikipedia.org',
+    'twitter.com', 'www.twitter.com',
+    'linkedin.com', 'www.linkedin.com',
+    'microsoft.com', 'www.microsoft.com',
+    'apple.com', 'www.apple.com'
+}
 
 app = Flask(__name__)
 
@@ -43,6 +57,24 @@ def predict():
         print(f"URL   : {url}")
         print(f"Model : {model_type.upper()}")
         print(f"{'='*50}")
+
+        # 1.5 Static Safe List Check
+        parsed_url = urlparse(url if url.startswith('http') else f'http://{url}')
+        if parsed_url.netloc.lower() in SAFE_DOMAINS:
+            print(" -> STATIC ANALYSIS: URL matched safe domains list. Returning Benign.")
+            probs_dict = {
+                'benign': 100.0,
+                'phishing': 0.0,
+                'malware': 0.0,
+                'spam': 0.0,
+                'Defacement': 0.0
+            }
+            return jsonify({
+                'url': url,
+                'prediction': 'benign',
+                'confidence': 100.0,
+                'probabilities': probs_dict
+            })
 
         # 2. Extract Features
         print(f"\nSTEP 2: Extracting raw features...")
